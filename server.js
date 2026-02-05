@@ -26,15 +26,24 @@ io.on("connection", socket => {
   socket.on("join", room => {
     socket.join(room);
     console.log(`${socket.id} joined room ${room}`);
+    socket.on("join", room => {
+  socket.join(room);
+  if (roomHistory[room]) {
+    roomHistory[room].forEach(msg => socket.emit("message", msg));
+  }
+});
   });
 
   // Text messages
   socket.on("message", data => {
-    // data = { room, text }
-    socket.to(data.room).emit("message", {
-      text: data.text
-    });
-  });
+  if (!roomHistory[data.room]) roomHistory[data.room] = [];
+  roomHistory[data.room].push({ text: data.text });
+
+  if (roomHistory[data.room].length > 100)
+    roomHistory[data.room].shift();
+
+  socket.to(data.room).emit("message", { text: data.text });
+});
 
   // Voice messages
   socket.on("voice", data => {
