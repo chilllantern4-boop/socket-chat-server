@@ -9,40 +9,40 @@ const io = new Server(server, {
   cors: { origin: "*" }
 });
 
+// Optional test route
 app.get("/", (req, res) => res.send("Socket.IO server running"));
 
-// Optional temporary in-memory history (keeps messages while server runs)
-const messagesHistory = {};
+// Store temporary messages per room (optional)
+const roomsHistory = {};
 
 io.on("connection", socket => {
   console.log("User connected:", socket.id);
 
+  // Join a room
   socket.on("join", room => {
     socket.join(room);
-    console.log(`${socket.id} joined ${room}`);
+    console.log(`${socket.id} joined room: ${room}`);
 
-    // send history for this room (if any)
-    if (messagesHistory[room]) {
-      messagesHistory[room].forEach(msg => socket.emit("message", msg));
+    // Send message history to this socket
+    if (roomsHistory[room]) {
+      roomsHistory[room].forEach(msg => socket.emit("message", msg));
     }
   });
 
-  // Receive message and broadcast to others in the same room (exclude sender)
+  // Receive message
   socket.on("message", data => {
-    // data: { room, text, id, ts? }
-    // store in history (optional)
-    if (!messagesHistory[data.room]) messagesHistory[data.room] = [];
-    messagesHistory[data.room].push(data);
-    // Keep history bounded (avoid infinite memory)
-    if (messagesHistory[data.room].length > 200) messagesHistory[data.room].shift();
+    // data: { room, text, id, ts }
 
-    // broadcast to everyone in room EXCEPT the sender
+    // Save to room history
+    if (!roomsHistory[data.room]) roomsHistory[data.room] = [];
+    roomsHistory[data.room].push(data);
+    if (roomsHistory[data.room].length > 200) roomsHistory[data.room].shift();
+
+    // Broadcast to everyone in room EXCEPT sender
     socket.to(data.room).emit("message", data);
   });
 
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
+  socket.on("disconnect", () => console.log("User disconnected:", socket.id));
 });
 
 server.listen(process.env.PORT || 3000, () => console.log("Server started"));
