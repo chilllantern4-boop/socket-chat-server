@@ -9,10 +9,10 @@ const io = new Server(server, {
   cors: { origin: "*" }
 });
 
-// Optional test route
+// Optional route
 app.get("/", (req, res) => res.send("Socket.IO server running"));
 
-// Store temporary messages per room (optional)
+// Temporary message storage per room
 const roomsHistory = {};
 
 io.on("connection", socket => {
@@ -23,13 +23,13 @@ io.on("connection", socket => {
     socket.join(room);
     console.log(`${socket.id} joined room: ${room}`);
 
-    // Send message history to this socket
+    // Send existing room history to the newly connected socket
     if (roomsHistory[room]) {
       roomsHistory[room].forEach(msg => socket.emit("message", msg));
     }
   });
 
-  // Receive message
+  // Receive a message from a client
   socket.on("message", data => {
     // data: { room, text, id, ts }
 
