@@ -32,3 +32,15 @@ io.on("connection", socket => {
 server.listen(process.env.PORT || 3000, () => {
   console.log("Server started");
 });
+
+const messagesHistory = [];
+
+io.on("connection", socket => {
+  // Send old messages to the newly connected client
+  messagesHistory.forEach(msg => socket.emit("message", msg));
+
+  socket.on("message", msg => {
+    messagesHistory.push(msg); // store it
+    io.emit("message", msg);   // send to everyone
+  });
+});
