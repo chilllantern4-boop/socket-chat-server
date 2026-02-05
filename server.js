@@ -12,6 +12,8 @@ const io = new Server(server, {
   }
 });
 
+const roomHistory = {};
+
 // Optional test route
 app.get("/", (req, res) => {
   res.send("Chat server is running");
