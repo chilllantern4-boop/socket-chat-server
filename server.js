@@ -17,8 +17,11 @@ io.on("connection", socket => {
   console.log("User connected");
 
   socket.on("message", msg => {
-    io.emit("message", msg); // send to everyone
+    io.emit("message", msg); // broadcast to all clients
   });
+
+  socket.on("disconnect", () => console.log("User disconnected"));
+});
 
   socket.on("disconnect", () => console.log("User disconnected"));
 });
