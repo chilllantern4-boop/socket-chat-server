@@ -6,47 +6,48 @@ const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: { origin: "*" }
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
 });
 
-// Optional route
-app.get("/", (req, res) => res.send("Socket.IO server running"));
-
-// Temporary message storage per room
-const roomsHistory = {};
+// Optional test route
+app.get("/", (req, res) => {
+  res.send("Chat server is running");
+});
 
 io.on("connection", socket => {
   console.log("User connected:", socket.id);
 
-  // Join a room
+  // Join private room
   socket.on("join", room => {
     socket.join(room);
-    console.log(`${socket.id} joined room: ${room}`);
-
-    // Send existing room history to the newly connected socket
-    if (roomsHistory[room]) {
-      roomsHistory[room].forEach(msg => socket.emit("message", msg));
-    }
+    console.log(`${socket.id} joined room ${room}`);
   });
 
-  socket.on("voice", data => {
-    socket.to(data.room).emit("voice", data);
-  });
-  
-  // Receive a message from a client
+  // Text messages
   socket.on("message", data => {
-    // data: { room, text, id, ts }
-
-    // Save to room history
-    if (!roomsHistory[data.room]) roomsHistory[data.room] = [];
-    roomsHistory[data.room].push(data);
-    if (roomsHistory[data.room].length > 200) roomsHistory[data.room].shift();
-
-    // Broadcast to everyone in room EXCEPT sender
-    socket.to(data.room).emit("message", data);
+    // data = { room, text }
+    socket.to(data.room).emit("message", {
+      text: data.text
+    });
   });
 
-  socket.on("disconnect", () => console.log("User disconnected:", socket.id));
+  // Voice messages
+  socket.on("voice", data => {
+    // data = { room, audio }
+    socket.to(data.room).emit("voice", {
+      audio: data.audio
+    });
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
 });
 
-server.listen(process.env.PORT || 3000, () => console.log("Server started"));
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log("Server listening on port", PORT);
+});
