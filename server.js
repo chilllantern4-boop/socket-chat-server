@@ -6,59 +6,53 @@ const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
+  cors: { origin: "*" }
 });
 
+// 🔹 IN-MEMORY CHAT HISTORY
 const roomHistory = {};
 
-// Optional test route
-app.get("/", (req, res) => {
-  res.send("Chat server is running");
-});
-
 io.on("connection", socket => {
-  console.log("User connected:", socket.id);
+  console.log("Connected:", socket.id);
 
-  // Join private room
   socket.on("join", room => {
     socket.join(room);
-    console.log(`${socket.id} joined room ${room}`);
-    socket.on("join", room => {
-  socket.join(room);
-  if (roomHistory[room]) {
-    roomHistory[room].forEach(msg => socket.emit("message", msg));
-  }
-});
+
+    // 🔹 SEND HISTORY TO NEW USER
+    if (roomHistory[room]) {
+      roomHistory[room].forEach(msg => {
+        socket.emit("message", msg);
+      });
+    }
   });
 
-  // Text messages
   socket.on("message", data => {
-  if (!roomHistory[data.room]) roomHistory[data.room] = [];
-  roomHistory[data.room].push({ text: data.text });
+    // data = { room, text }
 
-  if (roomHistory[data.room].length > 100)
-    roomHistory[data.room].shift();
+    if (!roomHistory[data.room]) {
+      roomHistory[data.room] = [];
+    }
 
-  socket.to(data.room).emit("message", { text: data.text });
-});
+    const msg = { text: data.text };
 
-  // Voice messages
+    roomHistory[data.room].push(msg);
+
+    // limit history
+    if (roomHistory[data.room].length > 100) {
+      roomHistory[data.room].shift();
+    }
+
+    // send to others
+    socket.to(data.room).emit("message", msg);
+  });
+
   socket.on("voice", data => {
-    // data = { room, audio }
     socket.to(data.room).emit("voice", {
       audio: data.audio
     });
   });
-
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log("Server listening on port", PORT);
+server.listen(process.env.PORT || 3000, () => {
+  console.log("Server running");
 });
