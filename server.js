@@ -9,21 +9,25 @@ const io = new Server(server, {
   cors: { origin: "*" }
 });
 
-// Route to check server
 app.get("/", (req, res) => res.send("Socket.IO server running"));
 
-// Broadcast messages
+// Listen for connections
 io.on("connection", socket => {
-  console.log("User connected");
+  console.log("User connected:", socket.id);
 
-  socket.on("message", msg => {
-    io.emit("message", msg); // broadcast to all clients
+  // Join a private room
+  socket.on("join", room => {
+    socket.join(room);
+    console.log(`Socket ${socket.id} joined room ${room}`);
   });
 
-  socket.on("disconnect", () => console.log("User disconnected"));
-});
+  // Handle messages in the room
+  socket.on("message", data => {
+    // data: { room: "room-name", text: "hi", id: socket.id }
+    io.to(data.room).emit("message", data);
+  });
 
-  socket.on("disconnect", () => console.log("User disconnected"));
+  socket.on("disconnect", () => console.log("User disconnected:", socket.id));
 });
 
 server.listen(process.env.PORT || 3000, () => console.log("Server started"));
