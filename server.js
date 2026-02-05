@@ -29,6 +29,10 @@ io.on("connection", socket => {
     }
   });
 
+  socket.on("voice", data => {
+    socket.to(data.room).emit("voice", data);
+  });
+  
   // Receive a message from a client
   socket.on("message", data => {
     // data: { room, text, id, ts }
